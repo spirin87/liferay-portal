@@ -18,12 +18,14 @@ import com.liferay.portal.kernel.repository.event.RepositoryEventListener;
 import com.liferay.portal.kernel.repository.event.RepositoryEventType;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.registry.RepositoryEventRegistry;
-import com.liferay.portal.test.runners.LiferayIntegrationJUnitTestRunner;
+import com.liferay.portal.test.LiferayIntegrationTestRule;
 import com.liferay.portal.util.test.RandomTestUtil;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -34,12 +36,16 @@ import org.junit.runner.RunWith;
 @RunWith(Enclosed.class)
 public class RepositoryEventTest {
 
-	@RunWith(LiferayIntegrationJUnitTestRunner.class)
 	public static final class WhenRegisteringRepositoryEvents {
+
+		@ClassRule
+		@Rule
+		public static final LiferayIntegrationTestRule
+			liferayIntegrationTestRule = new LiferayIntegrationTestRule();
 
 		@Test
 		public void shouldAcceptAnyNonNullListener() {
-			_repositoryClassDefinition.registerRepositoryEventListener(
+			_repositoryEventRegistry.registerRepositoryEventListener(
 				RepositoryEventType.Add.class, FileEntry.class,
 				new NoOpRepositoryEventListener
 					<RepositoryEventType.Add, FileEntry>());
@@ -47,17 +53,21 @@ public class RepositoryEventTest {
 
 		@Test(expected = NullPointerException.class)
 		public void shouldFailOnNullListener() {
-			_repositoryClassDefinition.registerRepositoryEventListener(
+			_repositoryEventRegistry.registerRepositoryEventListener(
 				RepositoryEventType.Add.class, FileEntry.class, null);
 		}
 
-		private final RepositoryClassDefinition _repositoryClassDefinition =
-			new RepositoryClassDefinition(null);
+		private final RepositoryEventRegistry _repositoryEventRegistry =
+			new DefaultRepositoryEventRegistry(null);
 
 	}
 
-	@RunWith(LiferayIntegrationJUnitTestRunner.class)
 	public static final class WhenTriggeringEvents {
+
+		@ClassRule
+		@Rule
+		public static final LiferayIntegrationTestRule
+			liferayIntegrationTestRule = new LiferayIntegrationTestRule();
 
 		@Test
 		public void shouldExecuteAllMatchingListeners() throws Exception {
@@ -65,11 +75,11 @@ public class RepositoryEventTest {
 
 			for (int i = 0; i < 3; i++) {
 				registerCounterRepositoryEventListener(
-					_repositoryClassDefinition, RepositoryEventType.Add.class,
-					FileEntry.class, count);
+					_defaultRepositoryEventRegistry,
+					RepositoryEventType.Add.class, FileEntry.class, count);
 			}
 
-			_repositoryClassDefinition.trigger(
+			_defaultRepositoryEventRegistry.trigger(
 				RepositoryEventType.Add.class, FileEntry.class, null);
 
 			Assert.assertEquals(3, count.get());
@@ -80,13 +90,13 @@ public class RepositoryEventTest {
 			throws Exception {
 
 			AtomicInteger count = registerCounterRepositoryEventListener(
-				_repositoryClassDefinition, RepositoryEventType.Add.class,
+				_defaultRepositoryEventRegistry, RepositoryEventType.Add.class,
 				FileEntry.class);
 
 			int randomInt = Math.abs(RandomTestUtil.nextInt());
 
 			for (int i = 0; i < randomInt; i++) {
-				_repositoryClassDefinition.trigger(
+				_defaultRepositoryEventRegistry.trigger(
 					RepositoryEventType.Add.class, FileEntry.class, null);
 			}
 
@@ -96,22 +106,23 @@ public class RepositoryEventTest {
 		@Test
 		public void shouldExecuteOnlyMatchingListeners() throws Exception {
 			AtomicInteger count = registerCounterRepositoryEventListener(
-				_repositoryClassDefinition, RepositoryEventType.Add.class,
+				_defaultRepositoryEventRegistry, RepositoryEventType.Add.class,
 				FileEntry.class);
 
-			_repositoryClassDefinition.registerRepositoryEventListener(
+			_defaultRepositoryEventRegistry.registerRepositoryEventListener(
 				RepositoryEventType.Update.class, FileEntry.class,
 				new AlwaysFailingRepositoryEventListener
 					<RepositoryEventType.Update, FileEntry>());
 
-			_repositoryClassDefinition.trigger(
+			_defaultRepositoryEventRegistry.trigger(
 				RepositoryEventType.Add.class, FileEntry.class, null);
 
 			Assert.assertEquals(1, count.get());
 		}
 
-		private final RepositoryClassDefinition _repositoryClassDefinition =
-			new RepositoryClassDefinition(null);
+		private final DefaultRepositoryEventRegistry
+			_defaultRepositoryEventRegistry =
+				new DefaultRepositoryEventRegistry(null);
 
 	}
 

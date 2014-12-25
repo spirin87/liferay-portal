@@ -731,7 +731,7 @@ public class AssetPublisherImpl implements AssetPublisher {
 
 		assetEntryQuery.setAllCategoryIds(allAssetCategoryIds);
 
-		if (overrideAllAssetCategoryIds != null) {
+		if (overrideAllAssetTagNames != null) {
 			allAssetTagNames = overrideAllAssetTagNames;
 		}
 
@@ -751,6 +751,7 @@ public class AssetPublisherImpl implements AssetPublisher {
 
 		assetEntryQuery.setAnyTagIds(anyAssetTagIds);
 
+		assetEntryQuery.setListable(true);
 		assetEntryQuery.setNotAllCategoryIds(notAllAssetCategoryIds);
 
 		for (String assetTagName : notAllAssetTagNames) {

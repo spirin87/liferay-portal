@@ -25,6 +25,9 @@ import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.Company;
+import com.liferay.portal.repository.liferayrepository.LiferayRepository;
+import com.liferay.portal.repository.portletrepository.PortletRepository;
+import com.liferay.portal.upgrade.v7_0_0.util.DLFolderTable;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.portlet.documentlibrary.model.DLFileEntryTypeConstants;
 import com.liferay.portlet.documentlibrary.util.DLUtil;
@@ -32,6 +35,7 @@ import com.liferay.portlet.documentlibrary.util.DLUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -60,6 +64,20 @@ public class UpgradeDocumentLibrary extends UpgradeProcess {
 		runSQL("alter table DLFileVersion add fileName VARCHAR(255) null");
 
 		updateFileVersionFileNames();
+
+		// DLFolder
+
+		try {
+			runSQL("alter_column_type DLFolder name VARCHAR(255) null");
+		}
+		catch (SQLException sqle) {
+			upgradeTable(
+				DLFolderTable.TABLE_NAME, DLFolderTable.TABLE_COLUMNS,
+				DLFolderTable.TABLE_SQL_CREATE,
+				DLFolderTable.TABLE_SQL_ADD_INDEXES);
+		}
+
+		updateRepositoryClassNameIds();
 	}
 
 	protected boolean hasFileEntry(long groupId, long folderId, String fileName)
@@ -462,6 +480,31 @@ public class UpgradeDocumentLibrary extends UpgradeProcess {
 		}
 		finally {
 			DataAccess.cleanUp(con, ps, rs);
+		}
+	}
+
+	protected void updateRepositoryClassNameIds() throws Exception {
+		long liferayRepositoryClassNameId = PortalUtil.getClassNameId(
+			LiferayRepository.class);
+		long portletRepositoryClassNameId = PortalUtil.getClassNameId(
+			PortletRepository.class);
+
+		Connection con = null;
+		PreparedStatement ps = null;
+
+		try {
+			con = DataAccess.getUpgradeOptimizedConnection();
+
+			ps = con.prepareStatement(
+				"update Repository set classNameId = ? where classNameId = ?");
+
+			ps.setLong(1, portletRepositoryClassNameId);
+			ps.setLong(2, liferayRepositoryClassNameId);
+
+			ps.executeUpdate();
+		}
+		finally {
+			DataAccess.cleanUp(con, ps);
 		}
 	}
 

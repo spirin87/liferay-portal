@@ -16,6 +16,7 @@ package com.liferay.portal.bean;
 
 import com.liferay.portal.kernel.memory.FinalizeManager;
 import com.liferay.portal.kernel.process.ClassPathUtil;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.test.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.GCUtil;
 import com.liferay.portal.kernel.test.NewEnv;
@@ -47,8 +48,10 @@ import org.junit.Test;
 public class ConstantsBeanFactoryImplTest {
 
 	@ClassRule
-	public static CodeCoverageAssertor codeCoverageAssertor =
-		new CodeCoverageAssertor();
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			CodeCoverageAssertor.INSTANCE, AspectJNewEnvTestRule.INSTANCE);
 
 	@AdviseWith(adviceClasses = {ReflectionUtilAdvice.class})
 	@NewEnv(type = NewEnv.Type.CLASSLOADER)
@@ -314,7 +317,7 @@ public class ConstantsBeanFactoryImplTest {
 		constantsBean1 = null;
 		constantsBeanClass1 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -328,17 +331,13 @@ public class ConstantsBeanFactoryImplTest {
 
 		constantsBean2 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
 
 		Assert.assertTrue(constantsBeans.isEmpty());
 	}
-
-	@Rule
-	public final AspectJNewEnvTestRule aspectJNewEnvTestRule =
-		new AspectJNewEnvTestRule();
 
 	public static class Constants {
 

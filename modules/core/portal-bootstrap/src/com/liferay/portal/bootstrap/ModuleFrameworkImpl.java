@@ -322,6 +322,19 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 	}
 
 	@Override
+	public void registerExtraPackages() {
+		BundleContext bundleContext = _framework.getBundleContext();
+
+		Map<String, List<URL>> extraPackageMap = getExtraPackageMap();
+
+		Dictionary<String, Object> properties = new Hashtable<>();
+
+		properties.put("jsp.compiler.resource.map", "portal.extra.packages");
+
+		bundleContext.registerService(Map.class, extraPackageMap, properties);
+	}
+
+	@Override
 	public void setBundleStartLevel(long bundleId, int startLevel)
 		throws PortalException {
 
@@ -806,6 +819,16 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		return new File(fileName);
 	}
 
+	private String _getLiferayLibPortalDir() {
+		String liferayLibPortalDir = PropsValues.LIFERAY_LIB_PORTAL_DIR;
+
+		if (liferayLibPortalDir.startsWith(StringPool.SLASH)) {
+			liferayLibPortalDir = liferayLibPortalDir.substring(1);
+		}
+
+		return liferayLibPortalDir;
+	}
+
 	private String _getSystemPackagesExtra() {
 		String[] systemPackagesExtra =
 			PropsValues.MODULE_FRAMEWORK_SYSTEM_PACKAGES_EXTRA;
@@ -1121,7 +1144,7 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		if (Validator.isNull(bundleSymbolicName)) {
 			String urlString = url.toString();
 
-			if (urlString.contains(PropsValues.LIFERAY_LIB_PORTAL_DIR)) {
+			if (urlString.contains(_getLiferayLibPortalDir())) {
 				manifest = _calculateManifest(url, manifest);
 
 				attributes = manifest.getMainAttributes();

@@ -14,10 +14,10 @@
 
 package com.liferay.portlet.dynamicdatamapping.service;
 
-import com.liferay.portal.kernel.test.ExecutionTestListeners;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.util.StringPool;
-import com.liferay.portal.test.listeners.MainServletExecutionTestListener;
-import com.liferay.portal.test.runners.LiferayIntegrationJUnitTestRunner;
+import com.liferay.portal.test.LiferayIntegrationTestRule;
+import com.liferay.portal.test.MainServletTestRule;
 import com.liferay.portal.util.PortalUtil;
 import com.liferay.portal.util.test.RandomTestUtil;
 import com.liferay.portal.util.test.ServiceContextTestUtil;
@@ -37,15 +37,20 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * @author Eduardo Garcia
  */
-@ExecutionTestListeners(listeners = {MainServletExecutionTestListener.class})
-@RunWith(LiferayIntegrationJUnitTestRunner.class)
 public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
+
+	@ClassRule
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(), MainServletTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() {
@@ -56,13 +61,12 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 	public void testAddStructureMissingRequiredElementAttribute()
 		throws Exception {
 
-		String storageType = StorageType.XML.getValue();
-
 		try {
 			addStructure(
 				_CLASS_NAME_ID, null, "Test Structure",
 				read("ddm-structure-required-element-attribute.xsd"),
-				storageType, DDMStructureConstants.TYPE_DEFAULT);
+				StorageType.JSON.getValue(),
+				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
 		}
@@ -72,12 +76,11 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 
 	@Test
 	public void testAddStructureWithDuplicateElementName() throws Exception {
-		String storageType = StorageType.XML.getValue();
-
 		try {
 			addStructure(
 				_CLASS_NAME_ID, null, "Test Structure",
-				read("ddm-structure-duplicate-element-name.xsd"), storageType,
+				read("ddm-structure-duplicate-element-name.xsd"),
+				StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
@@ -90,18 +93,18 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 	public void testAddStructureWithDuplicateElementNameInParent()
 		throws Exception {
 
-		String storageType = StorageType.XML.getValue();
-
 		try {
 			DDMStructure parentStructure = addStructure(
 				_CLASS_NAME_ID, null, "Test Parent Structure",
-				read("ddm-structure-duplicate-element-name.xsd"), storageType,
+				read("ddm-structure-duplicate-element-name.xsd"),
+				StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			addStructure(
 				parentStructure.getStructureId(), _CLASS_NAME_ID, null,
 				"Test Structure",
-				read("ddm-structure-duplicate-element-name.xsd"), storageType,
+				read("ddm-structure-duplicate-element-name.xsd"),
+				StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
@@ -113,17 +116,16 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 	@Test
 	public void testAddStructureWithDuplicateKey() throws Exception {
 		String structureKey = RandomTestUtil.randomString();
-		String storageType = StorageType.XML.getValue();
 
 		try {
 			addStructure(
 				_CLASS_NAME_ID, structureKey, "Test Structure 1",
-				getTestStructureDefinition(storageType), storageType,
+				read("test-structure.xsd"), StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			addStructure(
 				_CLASS_NAME_ID, structureKey, "Test Structure 2",
-				getTestStructureDefinition(storageType), storageType,
+				read("test-structure.xsd"), StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
@@ -134,13 +136,12 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 
 	@Test
 	public void testAddStructureWithInvalidElementAttribute() throws Exception {
-		String storageType = StorageType.XML.getValue();
-
 		try {
 			addStructure(
 				_CLASS_NAME_ID, null, "Test Structure",
 				read("ddm-structure-invalid-element-attribute.xsd"),
-				storageType, DDMStructureConstants.TYPE_DEFAULT);
+				StorageType.JSON.getValue(),
+				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
 		}
@@ -153,7 +154,8 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 		try {
 			addStructure(
 				_CLASS_NAME_ID, null, "Test Structure", StringPool.BLANK,
-				StorageType.XML.getValue(), DDMStructureConstants.TYPE_DEFAULT);
+				StorageType.JSON.getValue(),
+				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();
 		}
@@ -163,12 +165,10 @@ public class DDMStructureServiceTest extends BaseDDMServiceTestCase {
 
 	@Test
 	public void testAddStructureWithoutName() throws Exception {
-		String storageType = StorageType.XML.getValue();
-
 		try {
 			addStructure(
 				_CLASS_NAME_ID, null, StringPool.BLANK,
-				getTestStructureDefinition(storageType), storageType,
+				read("test-structure.xsd"), StorageType.JSON.getValue(),
 				DDMStructureConstants.TYPE_DEFAULT);
 
 			Assert.fail();

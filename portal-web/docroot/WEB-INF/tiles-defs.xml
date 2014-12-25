@@ -152,14 +152,6 @@
 		<put name="portlet_content" value="/portlet/asset_browser/view.jsp" />
 	</definition>
 
-	<!-- Asset Categories Navigation -->
-
-	<definition name="portlet.asset_categories_navigation" extends="portlet" />
-
-	<definition name="portlet.asset_categories_navigation.view" extends="portlet.asset_categories_navigation">
-		<put name="portlet_content" value="/portlet/asset_categories_navigation/view.jsp" />
-	</definition>
-
 	<!-- Asset Category Admin -->
 
 	<definition name="portlet.asset_category_admin" extends="portlet" />
@@ -238,14 +230,6 @@
 
 	<definition name="portlet.asset_tag_admin.view_tag" extends="portlet.asset_tag_admin">
 		<put name="portlet_content" value="/portlet/asset_tag_admin/view_tag.jsp" />
-	</definition>
-
-	<!-- Asset Tags Navigation -->
-
-	<definition name="portlet.asset_tags_navigation" extends="portlet" />
-
-	<definition name="portlet.asset_tags_navigation.view" extends="portlet.asset_tags_navigation">
-		<put name="portlet_content" value="/portlet/asset_tags_navigation/view.jsp" />
 	</definition>
 
 	<!-- Background Task-->
@@ -480,18 +464,6 @@
 		<put name="portlet_content" value="/portlet/document_library_display/view.jsp" />
 	</definition>
 
-	<!-- Document Selector -->
-
-	<definition name="portlet.document_selector" extends="portlet" />
-
-	<definition name="portlet.document_selector.add_file_entry" extends="portlet.document_selector">
-		<put name="portlet_content" value="/portlet/document_selector/add_file_entry.jsp" />
-	</definition>
-
-	<definition name="portlet.document_selector.view" extends="portlet.document_selector">
-		<put name="portlet_content" value="/portlet/document_selector/view.jsp" />
-	</definition>
-
 	<!-- Dynamic Data List Display -->
 
 	<definition name="portlet.dynamic_data_list_display" extends="portlet" />
@@ -718,22 +690,6 @@
 
 	<definition name="portlet.journal.view_feeds" extends="portlet.journal">
 		<put name="portlet_content" value="/portlet/journal/view_feeds.jsp" />
-	</definition>
-
-	<!-- Journal Content -->
-
-	<definition name="portlet.journal_content" extends="portlet" />
-
-	<definition name="portlet.journal_content.error" extends="portlet.journal_content">
-		<put name="portlet_content" value="/portlet/journal_content/error.jsp" />
-	</definition>
-
-	<definition name="portlet.journal_content.update_journal_article_redirect" extends="portlet.journal_content">
-		<put name="portlet_content" value="/portlet/journal_content/update_journal_article_redirect.jsp" />
-	</definition>
-
-	<definition name="portlet.journal_content.view" extends="portlet.journal_content">
-		<put name="portlet_content" value="/portlet/journal_content/view.jsp" />
 	</definition>
 
 	<!-- Journal Content Search -->
@@ -1158,6 +1114,10 @@
 		<put name="portlet_content" value="/portlet/portlet_configuration/export_import.jsp" />
 	</definition>
 
+	<definition name="portlet.portlet_configuration.staging" extends="portlet.portlet_configuration">
+		<put name="portlet_content" value="/portlet/portlet_configuration/publish_portlet.jsp" />
+	</definition>
+
 	<!-- Portlet CSS -->
 
 	<definition name="portlet.portlet_css" extends="portlet">
@@ -1232,18 +1192,6 @@
 
 	<definition name="portlet.roles_admin.view" extends="portlet.roles_admin">
 		<put name="portlet_content" value="/portlet/roles_admin/view.jsp" />
-	</definition>
-
-	<!-- RSS -->
-
-	<definition name="portlet.rss" extends="portlet" />
-
-	<definition name="portlet.rss.view" extends="portlet.rss">
-		<put name="portlet_content" value="/portlet/rss/view.jsp" />
-	</definition>
-
-	<definition name="portlet.rss.view_channel" extends="portlet.rss">
-		<put name="portlet_content" value="/portlet/rss/view_channel.jsp" />
 	</definition>
 
 	<!-- Search -->

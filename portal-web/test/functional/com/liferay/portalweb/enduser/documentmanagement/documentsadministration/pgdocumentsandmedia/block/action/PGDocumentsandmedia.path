@@ -442,6 +442,11 @@
 	<td></td>
 </tr>
 <tr>
+	<td>ENTRY_ICON_DOCUMENT_SHORTCUT_ACTIONS</td>
+	<td>//div[contains(.,'${key_dmDocumentTitle}') and a/div/img[@class='shortcut-icon']]//span/div/a</td>
+	<td></td>
+</tr>
+<tr>
 	<td></td>
 	<td></td>
 	<td></td>
@@ -464,7 +469,7 @@
 </tr>
 <tr>
 	<td>ENTRY_ICON_FOLDER_CHECKBOX</td>
-	<td>//div[contains(.,'${key_dmFolderName}') and a[@data-folder='true']]/input</td>
+	<td>//div[@data-title='${key_dmFolderName}']//input[@type='checkbox']</td>
 	<td></td>
 </tr>
 <tr>
@@ -588,6 +593,11 @@
 <tr>
 	<td>DOCUMENT_MENULIST_CHECKOUT</td>
 	<td>//a[@role='menuitem' and contains(.,'Checkout')]</td>
+	<td></td>
+</tr>
+<tr>
+	<td>DOCUMENT_MENULIST_CHECKIN</td>
+	<td>//a[@role='menuitem' and contains(.,'Checkin')]</td>
 	<td></td>
 </tr>
 <tr>

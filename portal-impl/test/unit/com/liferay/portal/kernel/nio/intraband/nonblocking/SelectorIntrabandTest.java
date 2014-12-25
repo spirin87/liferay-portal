@@ -25,6 +25,7 @@ import com.liferay.portal.kernel.nio.intraband.IntrabandTestUtil;
 import com.liferay.portal.kernel.nio.intraband.RecordCompletionHandler;
 import com.liferay.portal.kernel.nio.intraband.RecordDatagramReceiveHandler;
 import com.liferay.portal.kernel.nio.intraband.RegistrationReference;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.test.CaptureHandler;
 import com.liferay.portal.kernel.test.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.JDKLoggerTestUtil;
@@ -75,15 +76,18 @@ import org.junit.Test;
 public class SelectorIntrabandTest {
 
 	@ClassRule
-	public static CodeCoverageAssertor codeCoverageAssertor =
-		new CodeCoverageAssertor() {
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new CodeCoverageAssertor() {
 
-			@Override
-			public void appendAssertClasses(List<Class<?>> assertClasses) {
-				assertClasses.add(SelectionKeyRegistrationReference.class);
-			}
+				@Override
+				public void appendAssertClasses(List<Class<?>> assertClasses) {
+					assertClasses.add(SelectionKeyRegistrationReference.class);
+				}
 
-		};
+			},
+			AspectJNewEnvTestRule.INSTANCE);
 
 	@Before
 	public void setUp() throws Exception {
@@ -1076,8 +1080,8 @@ public class SelectorIntrabandTest {
 		Pipe writePipe = Pipe.open();
 
 		try (GatheringByteChannel gatheringByteChannel = writePipe.sink();
-			ScatteringByteChannel scatteringByteChannel =
-				readPipe.source()) {
+				ScatteringByteChannel scatteringByteChannel =
+					readPipe.source()) {
 
 			SelectionKeyRegistrationReference registrationReference =
 				(SelectionKeyRegistrationReference)
@@ -1277,10 +1281,6 @@ public class SelectorIntrabandTest {
 			_unregisterChannels(registrationReference);
 		}
 	}
-
-	@Rule
-	public final AspectJNewEnvTestRule aspectJNewEnvTestRule =
-		new AspectJNewEnvTestRule();
 
 	@Aspect
 	public static class Jdk14LogImplAdvice {

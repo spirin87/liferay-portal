@@ -17,6 +17,8 @@ package com.liferay.sync.engine;
 import com.j256.ormlite.support.ConnectionSource;
 
 import com.liferay.sync.engine.documentlibrary.event.GetSyncDLObjectUpdateEvent;
+import com.liferay.sync.engine.documentlibrary.util.BatchDownloadEvent;
+import com.liferay.sync.engine.documentlibrary.util.BatchEventManager;
 import com.liferay.sync.engine.documentlibrary.util.FileEventUtil;
 import com.liferay.sync.engine.documentlibrary.util.ServerEventUtil;
 import com.liferay.sync.engine.filesystem.SyncSiteWatchEventListener;
@@ -26,7 +28,6 @@ import com.liferay.sync.engine.filesystem.Watcher;
 import com.liferay.sync.engine.model.SyncAccount;
 import com.liferay.sync.engine.model.SyncFile;
 import com.liferay.sync.engine.model.SyncSite;
-import com.liferay.sync.engine.model.SyncWatchEvent;
 import com.liferay.sync.engine.service.SyncAccountService;
 import com.liferay.sync.engine.service.SyncFileService;
 import com.liferay.sync.engine.service.SyncPropService;
@@ -35,6 +36,7 @@ import com.liferay.sync.engine.service.SyncWatchEventService;
 import com.liferay.sync.engine.service.persistence.SyncAccountPersistence;
 import com.liferay.sync.engine.upgrade.util.UpgradeUtil;
 import com.liferay.sync.engine.util.ConnectionRetryUtil;
+import com.liferay.sync.engine.util.FileUtil;
 import com.liferay.sync.engine.util.LoggerUtil;
 import com.liferay.sync.engine.util.PropsValues;
 import com.liferay.sync.engine.util.SyncClientUpdater;
@@ -50,6 +52,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +61,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.FileUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,8 +100,8 @@ public class SyncEngine {
 		remoteEventsScheduledFuture.cancel(true);
 	}
 
-	public static ExecutorService getExecutorService() {
-		return _executorService;
+	public static ExecutorService getEventProcessorExecutorService() {
+		return _eventProcessorExecutorService;
 	}
 
 	public static synchronized boolean isRunning() {
@@ -160,6 +165,13 @@ public class SyncEngine {
 
 		SyncAccount syncAccount = ServerEventUtil.synchronizeSyncAccount(
 			syncAccountId);
+
+		Path dataFilePath = FileUtil.getFilePath(
+			syncAccount.getFilePathName(), ".data");
+
+		if (Files.exists(dataFilePath)) {
+			FileUtils.cleanDirectory(dataFilePath.toFile());
+		}
 
 		if (!ConnectionRetryUtil.retryInProgress(syncAccountId)) {
 			syncAccount.setState(SyncAccount.STATE_CONNECTED);
@@ -228,6 +240,7 @@ public class SyncEngine {
 			cancelSyncAccountTasks(syncAccountId);
 		}
 
+		_eventProcessorExecutorService.shutdownNow();
 		_executorService.shutdownNow();
 		_localEventsScheduledExecutorService.shutdownNow();
 		_remoteEventsScheduledExecutorService.shutdownNow();
@@ -303,9 +316,14 @@ public class SyncEngine {
 				continue;
 			}
 
-			watchEventListener.watchEvent(
-				SyncWatchEvent.EVENT_TYPE_DELETE,
-				Paths.get(deletedSyncFile.getFilePathName()));
+			if (deletedSyncFile.isFolder()) {
+				FileEventUtil.deleteFolder(
+					deletedSyncFile.getSyncAccountId(), deletedSyncFile);
+			}
+			else {
+				FileEventUtil.deleteFile(
+					deletedSyncFile.getSyncAccountId(), deletedSyncFile);
+			}
 		}
 	}
 
@@ -341,7 +359,7 @@ public class SyncEngine {
 				Set<Long> syncSiteIds = SyncSiteService.getActiveSyncSiteIds(
 					syncAccount.getSyncAccountId());
 
-				for (long syncSiteId : syncSiteIds) {
+				for (long syncSiteId : new HashSet<Long>(syncSiteIds)) {
 					SyncSite syncSite = SyncSiteService.fetchSyncSite(
 						syncSiteId);
 
@@ -358,6 +376,12 @@ public class SyncEngine {
 
 					getSyncDLObjectUpdateEvent.run();
 				}
+
+				BatchDownloadEvent batchDownloadEvent =
+					BatchEventManager.getBatchDownloadEvent(
+						syncAccount.getSyncAccountId());
+
+				batchDownloadEvent.fireBatchEvent();
 			}
 
 		};
@@ -386,6 +410,8 @@ public class SyncEngine {
 	private static final Logger _logger = LoggerFactory.getLogger(
 		SyncEngine.class);
 
+	private static final ExecutorService _eventProcessorExecutorService =
+		Executors.newFixedThreadPool(5);
 	private static final ExecutorService _executorService =
 		Executors.newCachedThreadPool();
 	private static final ScheduledExecutorService

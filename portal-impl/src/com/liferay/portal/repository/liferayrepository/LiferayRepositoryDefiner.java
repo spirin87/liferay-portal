@@ -23,10 +23,12 @@ import com.liferay.portal.kernel.repository.capabilities.BulkOperationCapability
 import com.liferay.portal.kernel.repository.capabilities.SyncCapability;
 import com.liferay.portal.kernel.repository.capabilities.TrashCapability;
 import com.liferay.portal.kernel.repository.capabilities.WorkflowCapability;
+import com.liferay.portal.kernel.repository.model.FileContentReference;
+import com.liferay.portal.kernel.repository.model.ModelValidator;
 import com.liferay.portal.kernel.repository.registry.BaseRepositoryDefiner;
 import com.liferay.portal.kernel.repository.registry.CapabilityRegistry;
-import com.liferay.portal.kernel.repository.registry.RepositoryEventRegistry;
 import com.liferay.portal.kernel.repository.registry.RepositoryFactoryRegistry;
+import com.liferay.portal.kernel.repository.util.ModelValidatorUtil;
 import com.liferay.portal.repository.capabilities.LiferayBulkOperationCapability;
 import com.liferay.portal.repository.capabilities.LiferaySyncCapability;
 import com.liferay.portal.repository.capabilities.LiferayTrashCapability;
@@ -63,19 +65,10 @@ public class LiferayRepositoryDefiner extends BaseRepositoryDefiner {
 			BulkOperationCapability.class, bulkOperationCapability);
 
 		capabilityRegistry.addSupportedCapability(
-			SyncCapability.class, _liferaySyncCapability);
+			SyncCapability.class,
+			new LiferaySyncCapability(bulkOperationCapability));
 		capabilityRegistry.addSupportedCapability(
 			WorkflowCapability.class, _liferayWorkflowCapability);
-	}
-
-	@Override
-	public void registerRepositoryEventListeners(
-		RepositoryEventRegistry repositoryEventRegistry) {
-
-		_liferaySyncCapability.registerRepositoryEventListeners(
-			repositoryEventRegistry);
-		_liferayTrashCapability.registerRepositoryEventListeners(
-			repositoryEventRegistry);
 	}
 
 	@Override
@@ -90,8 +83,6 @@ public class LiferayRepositoryDefiner extends BaseRepositoryDefiner {
 			repositoryFactory);
 	}
 
-	private final LiferaySyncCapability _liferaySyncCapability =
-		new LiferaySyncCapability();
 	private final LiferayTrashCapability _liferayTrashCapability =
 		new LiferayTrashCapability();
 	private final LiferayWorkflowCapability _liferayWorkflowCapability =
@@ -110,18 +101,28 @@ public class LiferayRepositoryDefiner extends BaseRepositoryDefiner {
 		public LocalRepository createLocalRepository(long repositoryId)
 			throws PortalException {
 
-			return new LiferayWorkflowLocalRepositoryWrapper(
-				_repositoryFactory.createLocalRepository(repositoryId),
-				_liferayWorkflowCapability);
+			LocalRepository localRepository =
+				_repositoryFactory.createLocalRepository(repositoryId);
+
+			ModelValidator<FileContentReference> modelValidator =
+				ModelValidatorUtil.getDefaultDLFileEntryModelValidator();
+
+			return new ModelValidatorLocalRepositoryWrapper(
+				localRepository, modelValidator);
 		}
 
 		@Override
 		public Repository createRepository(long repositoryId)
 			throws PortalException {
 
-			return new LiferayWorkflowRepositoryWrapper(
-				_repositoryFactory.createRepository(repositoryId),
-				_liferayWorkflowCapability);
+			Repository repository = _repositoryFactory.createRepository(
+				repositoryId);
+
+			ModelValidator<FileContentReference> modelValidator =
+				ModelValidatorUtil.getDefaultDLFileEntryModelValidator();
+
+			return new ModelValidatorRepositoryWrapper(
+				repository, modelValidator);
 		}
 
 		private final RepositoryFactory _repositoryFactory;

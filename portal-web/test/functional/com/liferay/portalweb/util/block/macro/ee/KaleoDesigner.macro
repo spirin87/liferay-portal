@@ -193,7 +193,7 @@
 		<var name="key_connectorLabel" value="${connectorLabel}" />
 
 		<execute action="Kaleodesigner#click" locator-key1="VIEW_FORM_CONNECTOR" />
-		<execute action="Kaleodesigner#keyPress" locator-key1="VIEW_FORM_CONNECTOR" value1="\46" />
+		<execute action="Kaleodesigner#keyPress" locator-key1="VIEW_FORM_CONNECTOR" value1="\DELETE" />
 		<execute action="Kaleodesigner#confirm" locator-key1="CONFIRMATION" value1="Are you sure you want to delete the selected connector(s)?" />
 		<execute action="Kaleodesigner#pause" locator1="1000" />
 
@@ -663,7 +663,19 @@
 	</command>
 
 	<command name="viewNoWorkflowDefinitionsViaKDCP">
-		<execute action="CPKaleodesignerconfiguration#assertTextEquals" locator-key1="INFO_MESSAGE" value1="No workflow definitions are defined." />
+		<var name="key_workflowDefinitionTitle" value="Single Approver" />
+
+		<if>
+			<condition action="CPKaleodesignerconfiguration#isElementPresent" locator-key1="DEFINITION_TABLE_TITLE" />
+			<then>
+				<execute macro="KaleoDesigner#viewTableDefinitionPublishedViaKDCP">
+					<var name="workflowDefinitionTitle" value="Single Approver" />
+				</execute>
+			</then>
+			<else>
+				<execute action="CPKaleodesignerconfiguration#assertTextEquals" locator-key1="INFO_MESSAGE" value1="No workflow definitions are defined." />
+			</else>
+		</if>
 	</command>
 
 	<command name="viewSourceXMLLine">

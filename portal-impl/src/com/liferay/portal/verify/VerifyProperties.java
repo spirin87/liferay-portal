@@ -283,6 +283,14 @@ public class VerifyProperties extends VerifyProcess {
 
 	private static final String[][] _MODULARIZED_PORTAL_KEYS = {
 
+		// Asset
+
+		new String[] {
+			"asset.categories.navigation.display.templates.config",
+			"display.templates.config",
+			"com.liferay.asset.categories.navigation.web"
+		},
+
 		// Bookmarks
 
 		new String[] {
@@ -338,11 +346,25 @@ public class VerifyProperties extends VerifyProcess {
 			"com.liferay.bookmarks.service"
 		},
 
+		// Journal
+
+		new String[] {
+			"journal.content.publish.to.live.by.default",
+			"publish.to.live.by.default", "com.liferay.journal.content.web"
+		},
+
 		// Polls
 
 		new String[] {
 			"polls.publish.to.live.by.default", "publish.to.live.by.default",
 			"com.liferay.polls.service"
+		},
+
+		// RSS
+
+		new String[] {
+			"rss.display.templates.config", "display.templates.config",
+			"com.liferay.rss.web"
 		},
 
 		// XSL content

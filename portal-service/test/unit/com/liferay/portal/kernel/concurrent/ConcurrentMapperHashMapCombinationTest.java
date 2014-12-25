@@ -64,7 +64,7 @@ public class ConcurrentMapperHashMapCombinationTest {
 
 		testValue1 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -74,7 +74,7 @@ public class ConcurrentMapperHashMapCombinationTest {
 
 		testValue2 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -111,7 +111,7 @@ public class ConcurrentMapperHashMapCombinationTest {
 
 		testKey1 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -122,7 +122,7 @@ public class ConcurrentMapperHashMapCombinationTest {
 		Assert.assertTrue(concurrentReferenceMap.containsValue(testValue2));
 		Assert.assertSame(testValue2, concurrentReferenceMap.get(testKey2));
 
-		GCUtil.fullGC();
+		GCUtil.fullGC(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -134,7 +134,7 @@ public class ConcurrentMapperHashMapCombinationTest {
 
 		testValue2 = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -143,6 +143,6 @@ public class ConcurrentMapperHashMapCombinationTest {
 	}
 
 	@Rule
-	public final NewEnvTestRule newEnvTestRule = new NewEnvTestRule();
+	public final NewEnvTestRule newEnvTestRule = NewEnvTestRule.INSTANCE;
 
 }

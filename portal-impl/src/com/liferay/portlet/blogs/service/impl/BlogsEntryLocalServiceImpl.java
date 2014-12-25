@@ -54,6 +54,7 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.kernel.workflow.WorkflowHandlerRegistryUtil;
 import com.liferay.portal.model.Group;
+import com.liferay.portal.model.Repository;
 import com.liferay.portal.model.ResourceConstants;
 import com.liferay.portal.model.SystemEventConstants;
 import com.liferay.portal.model.User;
@@ -121,6 +122,26 @@ import net.htmlparser.jericho.StartTag;
  */
 public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
+	@Override
+	public Folder addAttachmentsFolder(long userId, long groupId)
+		throws PortalException {
+
+		ServiceContext serviceContext = new ServiceContext();
+
+		serviceContext.setAddGroupPermissions(true);
+		serviceContext.setAddGuestPermissions(true);
+
+		Repository repository = PortletFileRepositoryUtil.addPortletRepository(
+			groupId, PortletKeys.BLOGS, serviceContext);
+
+		Folder folder = PortletFileRepositoryUtil.addPortletFolder(
+			userId, repository.getRepositoryId(),
+			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, PortletKeys.BLOGS,
+			serviceContext);
+
+		return folder;
+	}
+
 	/**
 	 * @deprecated As of 7.0.0, replaced by {@link #addEntry(long, String,
 	 *             String, String, String, int, int, int, int, int, boolean,
@@ -144,14 +165,14 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		if (smallImage && Validator.isNotNull(smallImageFileName) &&
 			(smallImageInputStream != null)) {
 
-			FileEntry fileEntry = TempFileEntryUtil.addTempFileEntry(
+			FileEntry tempFileEntry = TempFileEntryUtil.addTempFileEntry(
 				serviceContext.getScopeGroupId(), userId,
 				BlogsEntry.class.getName(), smallImageFileName,
 				smallImageInputStream,
 				MimeTypesUtil.getContentType(smallImageFileName));
 
 			smallImageImageSelector = new ImageSelector(
-				fileEntry.getFileEntryId(), smallImageURL, null);
+				tempFileEntry.getFileEntryId(), smallImageURL, null);
 		}
 
 		return addEntry(
@@ -399,14 +420,6 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		// Image
 
 		imageLocalService.deleteImage(entry.getSmallImageId());
-
-		// Portlet file repository
-
-		long imagesFolderId = entry.getImagesFolderId();
-
-		if (imagesFolderId != 0) {
-			PortletFileRepositoryUtil.deletePortletFolder(imagesFolderId);
-		}
 
 		// Subscriptions
 
@@ -1092,14 +1105,14 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			if (Validator.isNotNull(smallImageFileName) &&
 				(smallImageInputStream != null)) {
 
-				FileEntry fileEntry = TempFileEntryUtil.addTempFileEntry(
+				FileEntry tempFileEntry = TempFileEntryUtil.addTempFileEntry(
 					serviceContext.getScopeGroupId(), userId,
 					BlogsEntry.class.getName(), smallImageFileName,
 					smallImageInputStream,
 					MimeTypesUtil.getContentType(smallImageFileName));
 
 				smallImageImageSelector = new ImageSelector(
-					fileEntry.getFileEntryId(), smallImageURL, null);
+					tempFileEntry.getFileEntryId(), smallImageURL, null);
 			}
 		}
 		else {
@@ -1487,10 +1500,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			serviceContext.setAddGroupPermissions(true);
 			serviceContext.setAddGuestPermissions(true);
 
-			Folder folder = PortletFileRepositoryUtil.addPortletFolder(
-				groupId, userId, PortletKeys.BLOGS,
-				DLFolderConstants.DEFAULT_PARENT_FOLDER_ID,
-				String.valueOf(entryId), serviceContext);
+			Folder folder = addAttachmentsFolder(userId, groupId);
 
 			FileEntry fileEntry = PortletFileRepositoryUtil.addPortletFileEntry(
 				groupId, userId, BlogsEntry.class.getName(), entryId,
@@ -1536,10 +1546,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		serviceContext.setAddGroupPermissions(true);
 		serviceContext.setAddGuestPermissions(true);
 
-		Folder folder = PortletFileRepositoryUtil.addPortletFolder(
-			groupId, userId, PortletKeys.BLOGS,
-			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, String.valueOf(entryId),
-			serviceContext);
+		Folder folder = addAttachmentsFolder(userId, groupId);
 
 		FileEntry fileEntry = PortletFileRepositoryUtil.addPortletFileEntry(
 			groupId, userId, BlogsEntry.class.getName(), entryId,
@@ -1675,6 +1682,8 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			return;
 		}
 
+		Group group = groupPersistence.findByPrimaryKey(entry.getGroupId());
+
 		String entryTitle = entry.getTitle();
 
 		String fromName = blogsSettings.getEmailFromName();
@@ -1705,14 +1714,12 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			"[$BLOGS_ENTRY_CONTENT$]",
 			StringUtil.shorten(HtmlUtil.stripHtml(entry.getContent()), 500),
 			false);
-
 		subscriptionSender.setContextAttributes(
 			"[$BLOGS_ENTRY_CREATE_DATE$]",
 			Time.getSimpleDate(entry.getCreateDate(), "yyyy/MM/dd"),
 			"[$BLOGS_ENTRY_DESCRIPTION$]", entry.getDescription(),
 			"[$BLOGS_ENTRY_SITE_NAME$]",
-			groupLocalService.getGroupDescriptiveName(
-				entry.getGroupId(), serviceContext.getLocale()),
+				group.getDescriptiveName(serviceContext.getLocale()),
 			"[$BLOGS_ENTRY_STATUS_BY_USER_NAME$]", entry.getStatusByUserName(),
 			"[$BLOGS_ENTRY_TITLE$]", entryTitle,
 			"[$BLOGS_ENTRY_UPDATE_COMMENT$]",
@@ -1724,7 +1731,6 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			workflowContext.get(WorkflowConstants.CONTEXT_USER_PORTRAIT_URL),
 			"[$BLOGS_ENTRY_USER_URL$]",
 			workflowContext.get(WorkflowConstants.CONTEXT_USER_URL));
-
 		subscriptionSender.setContextUserPrefix("BLOGS_ENTRY");
 		subscriptionSender.setEntryTitle(entryTitle);
 		subscriptionSender.setEntryURL(entryURL);

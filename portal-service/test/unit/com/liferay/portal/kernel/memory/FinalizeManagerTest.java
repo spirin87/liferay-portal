@@ -15,6 +15,7 @@
 package com.liferay.portal.kernel.memory;
 
 import com.liferay.portal.kernel.memory.FinalizeManager.ReferenceFactory;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.test.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.GCUtil;
 import com.liferay.portal.kernel.test.NewEnv;
@@ -42,8 +43,10 @@ import org.junit.Test;
 public class FinalizeManagerTest {
 
 	@ClassRule
-	public static CodeCoverageAssertor codeCoverageAssertor =
-		new CodeCoverageAssertor();
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			CodeCoverageAssertor.INSTANCE, NewEnvTestRule.INSTANCE);
 
 	@After
 	public void tearDown() {
@@ -114,7 +117,7 @@ public class FinalizeManagerTest {
 
 		object = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -211,9 +214,6 @@ public class FinalizeManagerTest {
 		doTestRegister(true, ReferenceType.WEAK);
 	}
 
-	@Rule
-	public final NewEnvTestRule newEnvTestRule = new NewEnvTestRule();
-
 	protected void doTestRegister(
 			boolean threadEnabled, ReferenceType referenceType)
 		throws InterruptedException {
@@ -246,11 +246,14 @@ public class FinalizeManagerTest {
 
 		// First GC to trigger Object#finalize
 
-		if (referenceType == ReferenceType.SOFT) {
-			GCUtil.fullGC();
+		if (referenceType == ReferenceType.PHANTOM) {
+			GCUtil.gc(false);
+		}
+		else if (referenceType == ReferenceType.SOFT) {
+			GCUtil.fullGC(true);
 		}
 		else {
-			GCUtil.gc();
+			GCUtil.gc(true);
 		}
 
 		Assert.assertEquals(id, _finalizedIds.take());
@@ -260,7 +263,7 @@ public class FinalizeManagerTest {
 
 			// Second GC to trigger ReferenceQueue#enqueue
 
-			GCUtil.gc();
+			GCUtil.gc(false);
 		}
 
 		if (threadEnabled) {

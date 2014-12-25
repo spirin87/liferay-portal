@@ -20,6 +20,7 @@ import com.liferay.portal.kernel.dao.orm.DynamicQueryFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.util.IntegerWrapper;
 import com.liferay.portal.kernel.util.OrderByComparator;
@@ -27,9 +28,9 @@ import com.liferay.portal.kernel.util.OrderByComparatorFactoryUtil;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.test.LiferayIntegrationTestRule;
 import com.liferay.portal.test.PersistenceTestRule;
 import com.liferay.portal.test.TransactionalTestRule;
-import com.liferay.portal.test.runners.LiferayIntegrationJUnitTestRunner;
 import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.util.test.RandomTestUtil;
 
@@ -43,8 +44,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.junit.runner.RunWith;
-
 import java.io.Serializable;
 
 import java.util.ArrayList;
@@ -57,12 +56,11 @@ import java.util.Set;
 /**
  * @generated
  */
-@RunWith(LiferayIntegrationJUnitTestRunner.class)
 public class DDMTemplatePersistenceTest {
 	@Rule
-	public PersistenceTestRule persistenceTestRule = new PersistenceTestRule();
-	@Rule
-	public TransactionalTestRule transactionalTestRule = new TransactionalTestRule(Propagation.REQUIRED);
+	public final AggregateTestRule aggregateTestRule = new AggregateTestRule(new LiferayIntegrationTestRule(),
+			PersistenceTestRule.INSTANCE,
+			new TransactionalTestRule(Propagation.REQUIRED));
 
 	@After
 	public void tearDown() throws Exception {
@@ -128,6 +126,8 @@ public class DDMTemplatePersistenceTest {
 
 		newDDMTemplate.setTemplateKey(RandomTestUtil.randomString());
 
+		newDDMTemplate.setVersion(RandomTestUtil.randomString());
+
 		newDDMTemplate.setName(RandomTestUtil.randomString());
 
 		newDDMTemplate.setDescription(RandomTestUtil.randomString());
@@ -176,6 +176,8 @@ public class DDMTemplatePersistenceTest {
 			newDDMTemplate.getClassPK());
 		Assert.assertEquals(existingDDMTemplate.getTemplateKey(),
 			newDDMTemplate.getTemplateKey());
+		Assert.assertEquals(existingDDMTemplate.getVersion(),
+			newDDMTemplate.getVersion());
 		Assert.assertEquals(existingDDMTemplate.getName(),
 			newDDMTemplate.getName());
 		Assert.assertEquals(existingDDMTemplate.getDescription(),
@@ -492,10 +494,10 @@ public class DDMTemplatePersistenceTest {
 		return OrderByComparatorFactoryUtil.create("DDMTemplate", "uuid", true,
 			"templateId", true, "groupId", true, "companyId", true, "userId",
 			true, "userName", true, "createDate", true, "modifiedDate", true,
-			"classNameId", true, "classPK", true, "templateKey", true, "name",
-			true, "description", true, "type", true, "mode", true, "language",
-			true, "script", true, "cacheable", true, "smallImage", true,
-			"smallImageId", true, "smallImageURL", true);
+			"classNameId", true, "classPK", true, "templateKey", true,
+			"version", true, "name", true, "description", true, "type", true,
+			"mode", true, "language", true, "script", true, "cacheable", true,
+			"smallImage", true, "smallImageId", true, "smallImageURL", true);
 	}
 
 	@Test
@@ -746,6 +748,8 @@ public class DDMTemplatePersistenceTest {
 		ddmTemplate.setClassPK(RandomTestUtil.nextLong());
 
 		ddmTemplate.setTemplateKey(RandomTestUtil.randomString());
+
+		ddmTemplate.setVersion(RandomTestUtil.randomString());
 
 		ddmTemplate.setName(RandomTestUtil.randomString());
 

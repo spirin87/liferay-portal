@@ -21,6 +21,8 @@ import com.liferay.portal.fabric.netty.fileserver.FileResponse;
 import com.liferay.portal.kernel.concurrent.AsyncBroker;
 import com.liferay.portal.kernel.concurrent.NoticeableFuture;
 import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayOutputStream;
+import com.liferay.portal.kernel.nio.FileChannelWrapper;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.test.CaptureHandler;
 import com.liferay.portal.kernel.test.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.JDKLoggerTestUtil;
@@ -73,8 +75,10 @@ import org.junit.Test;
 public class FileUploadChannelHandlerTest {
 
 	@ClassRule
-	public static CodeCoverageAssertor codeCoverageAssertor =
-		new CodeCoverageAssertor();
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			CodeCoverageAssertor.INSTANCE, AspectJNewEnvTestRule.INSTANCE);
 
 	@After
 	public void tearDown() {
@@ -228,10 +232,6 @@ public class FileUploadChannelHandlerTest {
 			data, unsyncByteArrayOutputStream.toByteArray());
 		Assert.assertEquals(Unpooled.wrappedBuffer(data), byteBuf);
 	}
-
-	@Rule
-	public final AspectJNewEnvTestRule aspectJNewEnvTestRule =
-		new AspectJNewEnvTestRule();
 
 	@Aspect
 	public static class FileHelperUtilAdvice {

@@ -129,9 +129,28 @@
 
 		<script classpathref="project.classpath" language="beanshell">
 			<![CDATA[
+				import java.io.File;
+
 				import java.util.concurrent.TimeUnit;
 
+				import org.apache.commons.io.FileUtils;
+
 				import org.json.JSONObject;
+
+				public String fixJSON(String json) {
+					json = json.replaceAll("\t", "&#09;");
+					json = json.replaceAll("\\\"", "&#34;");
+					json = json.replaceAll("'", "&#39;");
+					json = json.replaceAll("<", "&#60;");
+					json = json.replaceAll(">", "&#62;");
+					json = json.replaceAll("\\[", "&#91;");
+					json = json.replaceAll("\\]", "&#93;");
+					json = json.replaceAll("\\{", "&#123;");
+					json = json.replaceAll("\\}", "&#125;");
+					json = json.replaceAll("\n", "<br />");
+
+					return json;
+				}
 
 				public String fixURL(String url) {
 					if (url.contains("(")) {
@@ -153,19 +172,40 @@
 					return url;
 				}
 
-				public String fixJSON(String json) {
-					json = json.replaceAll("\t", "&#09;");
-					json = json.replaceAll("\\\"", "&#34;");
-					json = json.replaceAll("'", "&#39;");
-					json = json.replaceAll("<", "&#60;");
-					json = json.replaceAll(">", "&#62;");
-					json = json.replaceAll("\\[", "&#91;");
-					json = json.replaceAll("\\]", "&#93;");
-					json = json.replaceAll("\\{", "&#123;");
-					json = json.replaceAll("\\}", "&#125;");
-					json = json.replaceAll("\n", "<br />");
+				public String getConsoleErrorMessage(String githubJenkinsFailureURL) {
+					String consoleOutput = toString(githubJenkinsFailureURL + "/logText/progressiveText");
 
-					return json;
+					int x = consoleOutput.lastIndexOf("BUILD FAILED");
+					int y = consoleOutput.lastIndexOf("Total time:");
+
+					String errorMessage = consoleOutput.substring(x, y - 2);
+
+					return fixJSON(errorMessage);
+				}
+
+				public String getDeprecatedMethodErrorMessage(File file) {
+					String errorMessage = FileUtils.readFileToString(file);
+
+					return fixJSON(errorMessage);
+				}
+
+				public String getRebaseErrorMessage(String githubJenkinsFailureURL) {
+					String consoleOutput = toString(githubJenkinsFailureURL + "/logText/progressiveText");
+
+					int x = consoleOutput.indexOf("[EnvInject] - Variables injected successfully.");
+					int y = consoleOutput.indexOf("--abort");
+
+					String errorMessage = consoleOutput.substring(x, y + 9);
+
+					return fixJSON(errorMessage);
+				}
+
+				public String getRemoteGithubJenkinsUrl() {
+					JSONObject jsonObject = toJSONObject(project.getProperty("github.jenkins.url") + "/api/json");
+
+					JSONObject primaryViewJSONObject = jsonObject.get("primaryView");
+
+					return primaryViewJSONObject.get("url");
 				}
 
 				public String toFormattedBuildTime(String githubJenkinsBuildTime) {
@@ -210,6 +250,10 @@
 				}
 
 				public JSONObject toJSONObject(String url) {
+					return new JSONObject(toString(url));
+				}
+
+				public String toString(String url) {
 					StringBuilder sb = new StringBuilder();
 
 					URL urlObject = new URL(fixURL(url));
@@ -222,11 +266,12 @@
 
 					while ((line = bufferedReader.readLine()) != null) {
 						sb.append(line);
+						sb.append("\n");
 					}
 
 					bufferedReader.close();
 
-					return new JSONObject(sb.toString());
+					return sb.toString();
 				}
 
 				StringBuilder sb = new StringBuilder();
@@ -266,34 +311,51 @@
 				sb.append("<ul>");
 
 				for (String githubJenkinsFailureURLPath : githubJenkinsFailureURLPaths) {
-					String githubJenkinsFailureURL = project.getProperty("github.jenkins.url") + githubJenkinsFailureURLPath;
+					String localGithubJenkinsFailureURL = project.getProperty("github.jenkins.url") + githubJenkinsFailureURLPath;
+					String remoteGithubJenkinsFailureURL = getRemoteGithubJenkinsUrl() + githubJenkinsFailureURLPath;
 
-					JSONObject jsonObject = toJSONObject(githubJenkinsFailureURL + "/api/json");
+					JSONObject jsonObject = toJSONObject(localGithubJenkinsFailureURL + "/api/json");
 
 					if (jsonObject.has("result")) {
 						sb.append("<li>");
 						sb.append("<a href=\\\"");
-						sb.append(githubJenkinsFailureURL);
+						sb.append(remoteGithubJenkinsFailureURL);
 						sb.append("\\\">");
 						sb.append(jsonObject.get("fullDisplayName"));
 						sb.append("</a>");
 						sb.append("<pre>RESULT: ");
-						sb.append(jsonObject.get("result"));
+
+						File file = new File(project.getProperty("github.jenkins.shared.dir") + "/javac.output.txt");
+
+						if (file.exists()) {
+							sb.append(getDeprecatedMethodErrorMessage(file));
+						}
+						else if (localGithubJenkinsFailureURL.contains("source")) {
+							sb.append(getRebaseErrorMessage(localGithubJenkinsFailureURL));
+						}
+						else {
+							sb.append(getConsoleErrorMessage(localGithubJenkinsFailureURL));
+						}
+
 						sb.append("</pre>");
 						sb.append("</li>");
 					}
 					else {
 						sb.append("<li>");
 						sb.append("<a href=\\\"");
-						sb.append(githubJenkinsFailureURL);
+						sb.append(remoteGithubJenkinsFailureURL);
 						sb.append("\\\">");
 						sb.append(jsonObject.get("className"));
 						sb.append(".");
 						sb.append(jsonObject.get("name"));
 						sb.append("</a>");
 						sb.append("<pre>");
-						sb.append(fixJSON(jsonObject.get("errorDetails")));
-						sb.append("<br /><br />");
+
+						if (!jsonObject.isNull("errorDetails")) {
+							sb.append(fixJSON(jsonObject.get("errorDetails")));
+							sb.append("<br /><br />");
+						}
+
 						sb.append(fixJSON(jsonObject.get("errorStackTrace")));
 						sb.append("</pre>");
 						sb.append("</li>");

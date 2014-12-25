@@ -16,7 +16,7 @@ package com.liferay.portal.repository.capabilities;
 
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.repository.LocalRepository;
-import com.liferay.portal.kernel.repository.capabilities.SyncCapability;
+import com.liferay.portal.kernel.repository.capabilities.CapabilityProvider;
 import com.liferay.portal.kernel.repository.event.RepositoryEventTrigger;
 import com.liferay.portal.kernel.repository.event.RepositoryEventType;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -38,10 +38,10 @@ public class CapabilityLocalRepository
 	implements LocalRepository {
 
 	public CapabilityLocalRepository(
-		LocalRepository localRepository,
+		LocalRepository localRepository, CapabilityProvider capabilityProvider,
 		RepositoryEventTrigger repositoryEventTrigger) {
 
-		super(localRepository);
+		super(localRepository, capabilityProvider);
 
 		_repositoryEventTrigger = repositoryEventTrigger;
 	}
@@ -160,13 +160,6 @@ public class CapabilityLocalRepository
 			RepositoryEventType.Delete.class, LocalRepository.class,
 			localRepository);
 
-		SyncCapability syncCapability = getInternalCapability(
-			SyncCapability.class);
-
-		if (syncCapability != null) {
-			syncCapability.destroyLocalRepository(this);
-		}
-
 		localRepository.deleteAll();
 	}
 
@@ -232,12 +225,12 @@ public class CapabilityLocalRepository
 
 	@Override
 	public List<FileEntry> getRepositoryFileEntries(
-			long rootFolderId, int start, int end,
+			long userId, long rootFolderId, int start, int end,
 			OrderByComparator<FileEntry> obc)
 		throws PortalException {
 
 		return getRepository().getRepositoryFileEntries(
-			rootFolderId, start, end, obc);
+			userId, rootFolderId, start, end, obc);
 	}
 
 	@Override
@@ -296,6 +289,10 @@ public class CapabilityLocalRepository
 			RepositoryEventType.Update.class, FileEntry.class, fileEntry);
 	}
 
+	/**
+	 * @deprecated As of 7.0.0, with no direct replacement
+	 */
+	@Deprecated
 	@Override
 	public void updateAsset(
 			long userId, FileEntry fileEntry, FileVersion fileVersion,

@@ -14,35 +14,42 @@
 
 package com.liferay.portal.service;
 
-import com.liferay.portal.kernel.test.ExecutionTestListeners;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.model.User;
-import com.liferay.portal.test.listeners.MainServletExecutionTestListener;
-import com.liferay.portal.test.listeners.ResetDatabaseExecutionTestListener;
-import com.liferay.portal.test.runners.LiferayIntegrationJUnitTestRunner;
+import com.liferay.portal.test.DeleteAfterTestRun;
+import com.liferay.portal.test.LiferayIntegrationTestRule;
+import com.liferay.portal.test.MainServletTestRule;
 import com.liferay.portal.util.test.UserTestUtil;
 import com.liferay.portlet.announcements.service.AnnouncementsDeliveryLocalServiceUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * @author Michael C. Han
  */
-@ExecutionTestListeners(
-	listeners = {
-		MainServletExecutionTestListener.class,
-		ResetDatabaseExecutionTestListener.class
-	})
-@RunWith(LiferayIntegrationJUnitTestRunner.class)
 public class UserLocalServiceTest {
+
+	@ClassRule
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(), MainServletTestRule.INSTANCE);
 
 	@Test
 	public void testGetNoAnnouncementsDeliveries() throws Exception {
 		User user1 = UserTestUtil.addUser();
+
+		_users.add(user1);
+
 		User user2 = UserTestUtil.addUser();
+
+		_users.add(user2);
 
 		AnnouncementsDeliveryLocalServiceUtil.addUserDelivery(
 			user1.getUserId(), "general");
@@ -50,45 +57,37 @@ public class UserLocalServiceTest {
 		List<User> users = UserLocalServiceUtil.getNoAnnouncementsDeliveries(
 			"general");
 
-		boolean success = false;
-
-		for (User user : users) {
-			if (user.getUserId() == user2.getUserId()) {
-				success = true;
-			}
-			else if (user.getUserId() == user1.getUserId()) {
-				Assert.fail(
-					"User " + user.getUserId() +
-						" should not have announcement deliveries");
-			}
-		}
-
-		Assert.assertTrue(
-			"No user found with user ID " + user2.getUserId(), success);
+		Assert.assertFalse(users.contains(user1));
+		Assert.assertTrue(users.contains(user2));
 	}
 
 	@Test
 	public void testGetNoContacts() throws Exception {
 		User user = UserTestUtil.addUser();
 
+		_users.add(user);
+
 		ContactLocalServiceUtil.deleteContact(user.getContactId());
 
 		List<User> users = UserLocalServiceUtil.getNoContacts();
 
-		Assert.assertEquals(1, users.size());
-		Assert.assertEquals(user, users.get(0));
+		Assert.assertTrue(users.contains(user));
 	}
 
 	@Test
 	public void testGetNoGroups() throws Exception {
 		User user = UserTestUtil.addUser();
 
+		_users.add(user);
+
 		GroupLocalServiceUtil.deleteGroup(user.getGroupId());
 
 		List<User> users = UserLocalServiceUtil.getNoGroups();
 
-		Assert.assertEquals(1, users.size());
-		Assert.assertEquals(user, users.get(0));
+		Assert.assertTrue(users.contains(user));
 	}
+
+	@DeleteAfterTestRun
+	private final List<User> _users = new ArrayList<User>();
 
 }

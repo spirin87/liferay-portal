@@ -30,6 +30,7 @@ String alloyEditorMode = ParamUtil.getString(request, "alloyEditorMode");
 String contents = (String)request.getAttribute("liferay-ui:input-editor:contents");
 String contentsLanguageId = (String)request.getAttribute("liferay-ui:input-editor:contentsLanguageId");
 String cssClass = GetterUtil.getString((String)request.getAttribute("liferay-ui:input-editor:cssClass"));
+Map<String, Object> data = (Map<String, Object>)request.getAttribute("liferay-ui:input-editor:data");
 String editorImpl = (String)request.getAttribute("liferay-ui:input-editor:editorImpl");
 Map<String, String> fileBrowserParamsMap = (Map<String, String>)request.getAttribute("liferay-ui:input-editor:fileBrowserParams");
 String name = namespace + GetterUtil.getString((String)request.getAttribute("liferay-ui:input-editor:name")) + "Editor";
@@ -113,7 +114,7 @@ boolean skipEditorLoading = GetterUtil.getBoolean((String)request.getAttribute("
 
 <div class="alloy-editor alloy-editor-placeholder <%= cssClass %>" contenteditable="false" data-placeholder="<%= LanguageUtil.get(request, placeholder) %>" id="<%= name %>" name="<%= name %>"><%= contents %></div>
 
-<aui:script use="aui-base,alloy-editor">
+<aui:script use="aui-base,alloy-editor,liferay-editor-image-uploader">
 	document.getElementById('<%= name %>').setAttribute('contenteditable', true);
 
 	<%
@@ -127,9 +128,17 @@ boolean skipEditorLoading = GetterUtil.getBoolean((String)request.getAttribute("
 
 	var alloyEditor = new A.AlloyEditor(
 		{
+			<c:if test='<%= alloyEditorMode.equals("text") %>'>
+				allowedContent: 'p',
+			</c:if>
+
 			contentsLangDirection: '<%= HtmlUtil.escapeJS(contentsLanguageDir) %>',
 
 			contentsLanguage: '<%= contentsLanguageId.replace("iw_", "he_") %>',
+
+			<c:if test='<%= alloyEditorMode.equals("text") %>'>
+				disallowedContent: 'br',
+			</c:if>
 
 			language: '<%= languageId.replace("iw_", "he_") %>',
 
@@ -210,6 +219,30 @@ boolean skipEditorLoading = GetterUtil.getBoolean((String)request.getAttribute("
 			window['<%= name %>'].editor = alloyEditor;
 
 			window['<%= name %>'].instanceReady = true;
+
+			<%
+			String uploadURL = StringPool.BLANK;
+
+			if (data != null) {
+				uploadURL = GetterUtil.getString(data.get("uploadURL"), StringPool.BLANK);
+			}
+			%>
+
+			<c:if test="<%= Validator.isNotNull(uploadURL) %>">
+				var uploader = new Liferay.BlogsUploader(
+					{
+						editor: nativeEditor,
+						uploadUrl: '<%= uploadURL %>'
+					}
+				);
+
+				nativeEditor.on(
+					'imagedrop',
+					function(event) {
+						uploader.uploadImage(event.data.el.$, event.data.file);
+					}
+				);
+			</c:if>
 		}
 	);
 
@@ -223,6 +256,32 @@ boolean skipEditorLoading = GetterUtil.getBoolean((String)request.getAttribute("
 			}
 		);
 	</c:if>
+
+	var contentFilter = new CKEDITOR.filter(
+		{
+			$1: {
+				attributes: ['alt', 'aria-*', 'height', 'href', 'src', 'width'],
+				classes: false,
+				elements: CKEDITOR.dtd,
+				styles: false
+			}
+		}
+	);
+
+	nativeEditor.on(
+		'paste',
+		function(event) {
+			var fragment = CKEDITOR.htmlParser.fragment.fromHtml(event.data.dataValue);
+
+			var writer = new CKEDITOR.htmlParser.basicWriter();
+
+			contentFilter.applyTo(fragment);
+
+			fragment.writeHtml(writer);
+
+			event.data.dataValue = writer.getHtml();
+		}
+	);
 
 	window['<%= name %>'] = {
 		destroy: function() {

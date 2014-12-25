@@ -15,6 +15,7 @@
 package com.liferay.portal.kernel.concurrent;
 
 import com.liferay.portal.kernel.memory.FinalizeManager;
+import com.liferay.portal.kernel.test.AggregateTestRule;
 import com.liferay.portal.kernel.test.CaptureHandler;
 import com.liferay.portal.kernel.test.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.GCUtil;
@@ -46,8 +47,10 @@ import org.junit.Test;
 public class AsyncBrokerTest {
 
 	@ClassRule
-	public static CodeCoverageAssertor codeCoverageAssertor =
-		new CodeCoverageAssertor();
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			CodeCoverageAssertor.INSTANCE, AspectJNewEnvTestRule.INSTANCE);
 
 	@After
 	public void tearDown() {
@@ -97,7 +100,7 @@ public class AsyncBrokerTest {
 
 		noticeableFuture = null;
 
-		GCUtil.gc();
+		GCUtil.gc(true);
 
 		ReflectionTestUtil.invoke(
 			FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -120,7 +123,7 @@ public class AsyncBrokerTest {
 		try {
 			asyncBroker.post(_KEY);
 
-			GCUtil.gc();
+			GCUtil.gc(true);
 
 			ReflectionTestUtil.invoke(
 				FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -145,7 +148,7 @@ public class AsyncBrokerTest {
 
 			noticeableFuture = null;
 
-			GCUtil.gc();
+			GCUtil.gc(true);
 
 			ReflectionTestUtil.invoke(
 				FinalizeManager.class, "_pollingCleanup", new Class<?>[0]);
@@ -180,7 +183,7 @@ public class AsyncBrokerTest {
 
 			asyncBroker.post(_KEY);
 
-			GCUtil.gc();
+			GCUtil.gc(true);
 
 			Field field = ReflectionTestUtil.getFieldValue(
 				AsyncBroker.class, "_REFERENT_FIELD");
@@ -380,10 +383,6 @@ public class AsyncBrokerTest {
 		Assert.assertTrue(defaultNoticeableFutures.isEmpty());
 		Assert.assertFalse(asyncBroker.takeWithResult(_KEY, _VALUE));
 	}
-
-	@Rule
-	public final AspectJNewEnvTestRule aspectJNewEnvTestRule =
-		new AspectJNewEnvTestRule();
 
 	private static final String _KEY = "testKey";
 

@@ -16,6 +16,7 @@ package com.liferay.portal.test;
 
 import com.liferay.portal.kernel.cache.CacheRegistryUtil;
 import com.liferay.portal.kernel.template.TemplateManagerUtil;
+import com.liferay.portal.kernel.test.BaseTestRule;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.model.ModelListener;
 import com.liferay.portal.model.ModelListenerRegistrationUtil;
@@ -24,48 +25,51 @@ import com.liferay.portal.tools.DBUpgrader;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 
 /**
  * @author Shuyang Zhou
  */
-public class PersistenceTestRule implements TestRule {
+public class PersistenceTestRule extends BaseTestRule<Object, Object> {
+
+	public static final PersistenceTestRule INSTANCE =
+		new PersistenceTestRule();
 
 	@Override
-	public Statement apply(final Statement statement, Description description) {
-		return new Statement() {
+	protected void afterMethod(Description description, Object modelListeners) {
+		Object instance = ReflectionTestUtil.getFieldValue(
+			ModelListenerRegistrationUtil.class, "_instance");
 
-			@Override
-			public void evaluate() throws Throwable {
-				Object instance = ReflectionTestUtil.getFieldValue(
-					ModelListenerRegistrationUtil.class, "_instance");
+		CacheRegistryUtil.setActive(true);
 
-				Object modelListeners = ReflectionTestUtil.getFieldValue(
-					instance, "_modelListeners");
-
-				ReflectionTestUtil.setFieldValue(
-					instance, "_modelListeners",
-					new ConcurrentHashMap<Class<?>, List<ModelListener<?>>>());
-
-				CacheRegistryUtil.setActive(false);
-
-				try {
-					statement.evaluate();
-				}
-				finally {
-					CacheRegistryUtil.setActive(true);
-
-					ReflectionTestUtil.setFieldValue(
-						instance, "_modelListeners", modelListeners);
-				}
-			}
-
-		};
+		ReflectionTestUtil.setFieldValue(
+			instance, "_modelListeners", modelListeners);
 	}
 
-	static {
+	@Override
+	protected Object beforeMethod(Description description) {
+		initialize();
+
+		Object instance = ReflectionTestUtil.getFieldValue(
+			ModelListenerRegistrationUtil.class, "_instance");
+
+		Object modelListeners = ReflectionTestUtil.getFieldValue(
+			instance, "_modelListeners");
+
+		ReflectionTestUtil.setFieldValue(
+			instance, "_modelListeners",
+			new ConcurrentHashMap<Class<?>, List<ModelListener<?>>>());
+
+		CacheRegistryUtil.setActive(false);
+
+		return modelListeners;
+	}
+
+	private static void initialize() {
+		if (_initialized) {
+			return;
+		}
+
 		try {
 			DBUpgrader.upgrade();
 
@@ -77,6 +81,13 @@ public class PersistenceTestRule implements TestRule {
 		finally {
 			CacheRegistryUtil.setActive(true);
 		}
+
+		_initialized = true;
 	}
+
+	private PersistenceTestRule() {
+	}
+
+	private static boolean _initialized;
 
 }

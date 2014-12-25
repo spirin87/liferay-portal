@@ -14,6 +14,7 @@
 
 package com.liferay.sync.engine.filesystem;
 
+import com.liferay.sync.engine.SyncEngine;
 import com.liferay.sync.engine.model.SyncAccount;
 import com.liferay.sync.engine.model.SyncFile;
 import com.liferay.sync.engine.model.SyncSite;
@@ -42,6 +43,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import name.pachler.nio.file.ClosedWatchServiceException;
 import name.pachler.nio.file.FileSystem;
 import name.pachler.nio.file.FileSystems;
 import name.pachler.nio.file.Paths;
@@ -52,6 +54,8 @@ import name.pachler.nio.file.WatchService;
 import name.pachler.nio.file.ext.ExtendedWatchEventKind;
 import name.pachler.nio.file.ext.ExtendedWatchEventModifier;
 import name.pachler.nio.file.impl.PathImpl;
+
+import org.apache.commons.lang.StringUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +125,15 @@ public class Watcher implements Runnable {
 
 				try {
 					watchKey = _watchService.take();
+				}
+				catch (ClosedWatchServiceException cwse) {
+					if (!SyncEngine.isRunning()) {
+						break;
+					}
+
+					_logger.error(cwse.getMessage(), cwse);
+
+					continue;
 				}
 				catch (Exception e) {
 					if (_logger.isTraceEnabled()) {
@@ -241,7 +254,9 @@ public class Watcher implements Runnable {
 						_logger.trace("Unregistered file path {}", filePath);
 					}
 
-					processMissingFilePath(filePath);
+					if (Files.notExists(filePath)) {
+						processMissingFilePath(filePath);
+					}
 
 					if (_filePaths.isEmpty()) {
 						break;
@@ -317,9 +332,11 @@ public class Watcher implements Runnable {
 							BasicFileAttributes basicFileAttributes)
 						throws IOException {
 
-						if (!filePath.equals(_dataFilePath)) {
-							doRegister(filePath, false);
+						if (filePath.equals(_dataFilePath)) {
+							return FileVisitResult.SKIP_SUBTREE;
 						}
+
+						doRegister(filePath, false);
 
 						return FileVisitResult.CONTINUE;
 					}
@@ -356,13 +373,9 @@ public class Watcher implements Runnable {
 							Path filePath, IOException ioe)
 						throws IOException {
 
-						if (ioe != null) {
-							_failedFilePaths.add(filePath);
+						_failedFilePaths.add(filePath);
 
-							return FileVisitResult.CONTINUE;
-						}
-
-						return super.visitFileFailed(filePath, ioe);
+						return FileVisitResult.CONTINUE;
 					}
 
 				}
@@ -441,6 +454,20 @@ public class Watcher implements Runnable {
 			}
 
 			return true;
+		}
+
+		if (!OSDetector.isWindows()) {
+			String trimmedFilePathName = StringUtils.stripEnd(
+				filePath.toString(), " ");
+
+			if (!trimmedFilePathName.equals(filePath.toString())) {
+				Path trimmedFilePath = java.nio.file.Paths.get(
+					trimmedFilePathName);
+
+				FileUtil.moveFile(filePath, trimmedFilePath);
+
+				return true;
+			}
 		}
 
 		return false;

@@ -15,6 +15,9 @@
 package com.liferay.portlet.journal.util;
 
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
+import com.liferay.portal.kernel.dao.orm.DynamicQuery;
+import com.liferay.portal.kernel.dao.orm.Property;
+import com.liferay.portal.kernel.dao.orm.PropertyFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -333,7 +336,7 @@ public class JournalArticleIndexer extends BaseIndexer {
 
 		if ((latestIndexableArticle == null) ||
 			(PropsValues.JOURNAL_ARTICLE_INDEX_ALL_VERSIONS &&
-		 	(latestIndexableArticle.getVersion() > article.getVersion()))) {
+			 (latestIndexableArticle.getVersion() > article.getVersion()))) {
 
 			return;
 		}
@@ -360,12 +363,8 @@ public class JournalArticleIndexer extends BaseIndexer {
 		String articleDefaultLanguageId = LocalizationUtil.getDefaultLanguageId(
 			article.getDocument());
 
-		Locale defaultLocale = LocaleUtil.getSiteDefault();
-
-		String defaultLanguageId = LocaleUtil.toLanguageId(defaultLocale);
-
-		String[] languageIds = getLanguageIds(
-			defaultLanguageId, article.getDocument());
+		String[] languageIds = LocalizationUtil.getAvailableLanguageIds(
+			article.getDocument());
 
 		for (String languageId : languageIds) {
 			String content = extractDDMContent(article, languageId);
@@ -487,6 +486,17 @@ public class JournalArticleIndexer extends BaseIndexer {
 				document.get(Field.UID), isCommitImmediately());
 
 			return;
+		}
+
+		if (!PropsValues.JOURNAL_ARTICLE_INDEX_ALL_VERSIONS) {
+			int status = article.getStatus();
+
+			if ((status != WorkflowConstants.STATUS_APPROVED) &&
+				(status != WorkflowConstants.STATUS_IN_TRASH)) {
+
+				deleteDocument(
+					article.getCompanyId(), article.getResourcePrimKey());
+			}
 		}
 
 		if (allVersions) {
@@ -660,20 +670,6 @@ public class JournalArticleIndexer extends BaseIndexer {
 		return content;
 	}
 
-	protected String[] getLanguageIds(
-		String defaultLanguageId,
-		com.liferay.portal.kernel.xml.Document document) {
-
-		String[] languageIds = LocalizationUtil.getAvailableLanguageIds(
-			document);
-
-		if (languageIds.length == 0) {
-			languageIds = new String[] {defaultLanguageId};
-		}
-
-		return languageIds;
-	}
-
 	@Override
 	protected String getPortletId(SearchContext searchContext) {
 		return PORTLET_ID;
@@ -707,6 +703,27 @@ public class JournalArticleIndexer extends BaseIndexer {
 		final ActionableDynamicQuery actionableDynamicQuery =
 			JournalArticleLocalServiceUtil.getActionableDynamicQuery();
 
+		actionableDynamicQuery.setAddCriteriaMethod(
+			new ActionableDynamicQuery.AddCriteriaMethod() {
+
+				@Override
+				public void addCriteria(DynamicQuery dynamicQuery) {
+					if (PropsValues.JOURNAL_ARTICLE_INDEX_ALL_VERSIONS) {
+						return;
+					}
+
+					Property statusProperty = PropertyFactoryUtil.forName(
+						"status");
+
+					Integer[] statuses = {
+						WorkflowConstants.STATUS_APPROVED,
+						WorkflowConstants.STATUS_IN_TRASH
+					};
+
+					dynamicQuery.add(statusProperty.in(statuses));
+				}
+
+			});
 		actionableDynamicQuery.setCompanyId(companyId);
 		actionableDynamicQuery.setPerformActionMethod(
 			new ActionableDynamicQuery.PerformActionMethod() {
